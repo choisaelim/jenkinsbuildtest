@@ -90,7 +90,7 @@ DEFAULT_JVM_OPTS='"-Xmx4096m" "-Xms4096m"'
 #GRADLE_OPTS='"org.gradle.jvmargs=-Xms4096m -Xmx8192m -XX:MaxPermSize=1024m"'
 # GRADLE_OPTS= '"-Dorg.gradle.jvmargs="-XX:MaxMetaspaceSize=1g --no-daemon"'
 
-GRADLE_OPTS= '"-Dorg.gradle.daemon=false"'
+GRADLE_OPTS= '"-Xmx1.5G -XX:MaxPermSize=0.7G"'
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 
