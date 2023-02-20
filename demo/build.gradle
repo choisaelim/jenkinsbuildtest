@@ -28,5 +28,6 @@ dependencies {
 }
 
 tasks.named('test') {
+	maxHeapSize = "6000m"
 	useJUnitPlatform()
 }
