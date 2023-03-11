@@ -1,0 +1,77 @@
+server:
+    port: 8000
+
+eureka:
+    client:
+        register-with-eureka: true
+        fetch-registry: true
+        service-url:
+            defaultZone: http://localhost:8761/eureka
+management:
+    endpoints:
+        web:
+            exposure:
+                include: refresh,health,beans,httptrace
+spring:
+    application:
+        name: gateway-service
+    profiles:
+        include: "dev"
+    # config:
+    #     import: optional:configserver:http://localhost:8888
+    cloud:
+        config:
+            enabled: false
+        gateway:
+            default-filters:
+                - name: GlobalFilter
+                  args:
+                      baseMessage: Spring Gateway GlobalFilter
+                      preLogger: true
+                      postLogger: true
+            routes:
+                - id: user-service
+                  uri: lb://USER-SERVICE
+                  predicates:
+                      - Path=/user-service/actuator/**
+                      - Method=GET,POST
+                  filters:
+                      - RemoveRequestHeader=Cookie
+                      - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+                - id: user-service
+                  uri: lb://USER-SERVICE
+                  predicates:
+                      - Path=/user-service/login
+                      - Method=POST
+                  filters:
+                      - RemoveRequestHeader=Cookie
+                      - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+                - id: user-service
+                  uri: lb://USER-SERVICE
+                  predicates:
+                      - Path=/user-service/users
+                      - Method=POST
+                  filters:
+                      - RemoveRequestHeader=Cookie
+                      - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+                - id: user-service
+                  uri: lb://USER-SERVICE
+                  predicates:
+                      - Path=/user-service/**
+                      - Method=GET
+                  filters:
+                      - RemoveRequestHeader=Cookie
+                      - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+                      - AuthorizationHeaderFilter
+                - id: catalog-service
+                  uri: lb://CATALOG-SERVICE
+                  predicates:
+                      - Path=/catalog-service/**
+                  filters:
+                      - RewritePath=/catalog-service/(?<segment>.*), /$\{segment}
+                - id: order-service
+                  uri: lb://ORDER-SERVICE
+                  predicates:
+                      - Path=/order-service/**
+                  filters:
+                      - RewritePath=/order-service/(?<segment>.*), /$\{segment}
