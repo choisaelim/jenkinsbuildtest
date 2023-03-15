@@ -63,15 +63,9 @@ spring:
                       - RemoveRequestHeader=Cookie
                       - RewritePath=/user-service/(?<segment>.*), /$\{segment}
                       - AuthorizationHeaderFilter
-                - id: catalog-service
-                  uri: lb://CATALOG-SERVICE
+                - id: map-service
+                  uri: lb://MAP-SERVICE
                   predicates:
-                      - Path=/catalog-service/**
+                      - Path=/map-service/**
                   filters:
-                      - RewritePath=/catalog-service/(?<segment>.*), /$\{segment}
-                - id: order-service
-                  uri: lb://ORDER-SERVICE
-                  predicates:
-                      - Path=/order-service/**
-                  filters:
-                      - RewritePath=/order-service/(?<segment>.*), /$\{segment}
+                      - RewritePath=/map-service/(?<segment>.*), /$\{segment}
