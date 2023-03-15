@@ -30,6 +30,11 @@ public class MapEntity implements Serializable {
     private String ylocation;
 
     @Column(nullable = false)
+    private String lat;
+    @Column(nullable = false)
+    private String lon;
+
+    @Column(nullable = false)
     private String userId;
     @Column(nullable = false, unique = true)
     private String mapId;

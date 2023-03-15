@@ -10,6 +10,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.modelmapper.ModelMapper;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MapController {
     private final MapService mapService;
+    private final Environment env;
 
     static class map {
         static double Re = 6371.00877; // 지도반경
@@ -83,16 +85,17 @@ public class MapController {
                 + String.valueOf(Math.floor(y + 1.5)));
     }
 
-    public void getWeather(WeatherAPIDto api) throws ParseException {
+    public WeatherInfoDto getWeather(ResponseMap map) throws ParseException {
+        WeatherInfoDto dto = new WeatherInfoDto();
+        // 오늘 날짜
+        String formatDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // 단기예보 공공 API URL
         String url = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
-                + "?serviceKey=" + api.getServiceKey()
-                + "&pageNo=" + api.getPageNo()
-                + "&numOfRows=" + api.getNumOfRows()
-                + "&dataType=" + api.getDataType()
-                + "&base_date=" + api.getBase_date()
-                + "&base_time=" + api.getBase_time()
-                + "&nx=" + api.getNx()
-                + "&ny=" + api.getNy();
+                + "?serviceKey=" + env.getProperty("api.weatherkey")
+                + "&pageNo=1&numOfRows=500&dataType=JSON&base_time=0500"
+                + "&base_date=" + formatDate
+                + "&nx=" + map.getXlocation()
+                + "&ny=" + map.getYlocation();
 
         RestTemplate restTemplate = new RestTemplate();
         String jsonString = restTemplate.getForObject(url, String.class);
@@ -106,28 +109,6 @@ public class MapController {
                     .get("items");
             jsonItemList = (JSONArray) jsonItems.get("item");
         }
-        // // 가장 큰 JSON 객체 response 가져오기
-        // JSONObject jsonResponse = (JSONObject) jsonObject.get("response");
-
-        // // 그 다음 body 부분 파싱
-        // JSONObject jsonBody = (JSONObject) jsonResponse.get("body");
-
-        // // 그 다음 위치 정보를 배열로 담은 items 파싱
-        // JSONObject jsonItems = (JSONObject) jsonBody.get("items");
-
-        // items는 JSON임, 이제 그걸 또 배열로 가져온다
-
-        // List<WeatherDto> jsonList = new ArrayList<>();
-        List<String> weatherList = new ArrayList<>();
-        String content = "";
-        WeatherInfoDto adto = new WeatherInfoDto();
-        WeatherInfoDto bdto = new WeatherInfoDto();
-
-        // 포맷 정의
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-
-        // 포맷 적용
-        String formatDate = LocalDate.now().format(formatter);
 
         for (Object o : jsonItemList) {
             JSONObject item = (JSONObject) o;
@@ -137,34 +118,48 @@ public class MapController {
             // 1번째는 퇴근길 온도는 7도, 날씨는 비가 오며 강수확률 POP 강수량은 10mm(PCP)
             // REH 습도(여름) SNO 적설량(겨울)
             // 퇴근시 우산을 챙기세요
-            if (formatDate.equals(item.get("fcstDate").toString()) && "0800".equals(item.get("fcstTime").toString())) {
-                adto.mapper(item.get("fcstTime").toString(), item.get("category").toString(),
-                        item.get("fcstValue").toString());
+            if (formatDate.equals(item.get("fcstDate").toString())) {
+                if ("S".equals(map.getMapType()) && "0800".equals(item.get("fcstTime").toString())) {
+                    dto.mapper(item.get("fcstTime").toString(), item.get("category").toString(),
+                            item.get("fcstValue").toString());
+                } else if ("E".equals(map.getMapType()) && "1800".equals(item.get("fcstTime").toString())) {
+                    dto.mapper(item.get("fcstTime").toString(), item.get("category").toString(),
+                            item.get("fcstValue").toString());
+                }
 
-            } else if (formatDate.equals(item.get("fcstDate").toString())
-                    && "1800".equals(item.get("fcstTime").toString())) {
-                bdto.mapper(item.get("fcstTime").toString(), item.get("category").toString(),
-                        item.get("fcstValue").toString());
             }
         }
 
-        adto.weatherMessage();
-        bdto.weatherMessage();
+        dto.weatherMessage();
 
-        System.out.println(adto.getMessage());
-        System.out.println(bdto.getMessage());
-        int count = weatherList.size();
-
+        return dto;
     }
 
     @GetMapping("/weather/{userId}")
-    public ResponseEntity<List<ResponseMap>> getWeather(@PathVariable("userId") String userId,
+    public ResponseEntity<List<WeatherInfoDto>> getWeather(@PathVariable("userId") String userId,
             @ModelAttribute("api") WeatherAPIDto api) throws ParseException {
 
-        List<ResponseMap> list = new ArrayList<>();
-        // 59, 126
-        // 61, 125
-        getWeather(api);
+        Iterable<MapEntity> mapList = mapService.getMapbyUserId(userId);
+        List<WeatherInfoDto> list = new ArrayList<>();
+
+        mapList.forEach(t -> {
+            ResponseMap map = new ModelMapper().map(t, ResponseMap.class);
+            if ("S".equals(map.getMapType())) {
+                // 날씨 조회
+                try {
+                    list.add(getWeather(map));
+                } catch (ParseException e) {
+                    e.toString();
+                }
+            } else if ("E".equals(map.getMapType())) {
+                try {
+                    list.add(getWeather(map));
+                } catch (ParseException e) {
+                    e.toString();
+                }
+            }
+
+        });
 
         return ResponseEntity.status(HttpStatus.OK).body(list);
     }

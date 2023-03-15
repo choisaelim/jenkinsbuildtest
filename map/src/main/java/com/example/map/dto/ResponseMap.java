@@ -12,6 +12,8 @@ public class ResponseMap {
     private String mapId;
     private String xlocation;
     private String ylocation;
+    private String lat;
+    private String lon;
     private String userId;
     private String mapType;
     private Date createdAt;

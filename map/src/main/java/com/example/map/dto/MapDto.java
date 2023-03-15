@@ -9,6 +9,8 @@ public class MapDto implements Serializable {
     private String mapId;
     private String xlocation;
     private String ylocation;
+    private String lat; // 위도 37
+    private String lon;
     private String userId;
     private String mapType;
 }
