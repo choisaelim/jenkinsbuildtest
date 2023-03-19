@@ -11,7 +11,11 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.modelmapper.ModelMapper;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.example.map.dto.CarInfoDto;
 import com.example.map.dto.ResponseMap;
 import com.example.map.dto.WeatherAPIDto;
 import com.example.map.dto.WeatherInfoDto;
@@ -85,6 +90,54 @@ public class MapController {
                 + String.valueOf(Math.floor(y + 1.5)));
     }
 
+    public CarInfoDto getCarTime(List<ResponseMap> mapList) throws ParseException {
+        CarInfoDto dto = new CarInfoDto();
+        ResponseMap start = mapList.stream().filter(x -> "S".equals(x.getMapType())).findFirst().orElse(null);
+        ResponseMap end = mapList.stream().filter(x -> "E".equals(x.getMapType())).findFirst().orElse(null);
+
+        int duration = 0;
+        double distance = 0;
+        // 카카오 내비 API
+        // https://apis-navi.kakaomobility.com/v1/directions?
+        // origin=126.885209391838,37.5156016724837&destination=127.028234154874,37.4945246017971
+        // &waypoints=&priority=RECOMMEND&car_fuel=GASOLINE&car_hipass=false&alternatives=false&road_details=false
+        if (start != null && end != null) {
+            String url = "https://apis-navi.kakaomobility.com/v1/directions?"
+                    // + "?serviceKey=" + env.getProperty("api.kakaorestkey")
+                    + "priority=RECOMMEND&car_fuel=GASOLINE&car_hipass=false&alternatives=false&road_details=false"
+                    + "&origin=" + start.getLon() + "," + start.getLat()
+                    + "&destination=" + end.getLon() + "," + end.getLat();
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", env.getProperty("api.kakaorestkey"));
+
+            HttpEntity<String> entity = new HttpEntity<String>("parameters", headers);
+            ResponseEntity<String> jsonString = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            // String jsonString = restTemplate.getForObject(url, String.class);
+            // 헤더 넣어야 함
+            JSONParser jsonParser = new JSONParser();
+
+            JSONObject jsonObject = (JSONObject) jsonParser.parse(jsonString.getBody());
+            JSONArray jsonItemList = (JSONArray) jsonObject.get("routes");
+            ;
+
+            if (jsonItemList != null && jsonItemList.size() > 0) {
+                JSONObject jsonItem = (JSONObject) ((JSONObject) jsonItemList.get(0)).get("summary");
+                duration = Math.round(Integer.parseInt(jsonItem.get("duration").toString()) / 60); // 초단위로 되어 있으므로 60초로
+                                                                                                   // 나눈다
+                distance = Math.round((Double.parseDouble(jsonItem.get("distance").toString()) / 1000) * 100) / 100;
+            }
+        }
+
+        dto.setDuration(duration);
+        dto.setDistance(distance);
+        // dto.weatherMessage();
+
+        return dto;
+    }
+
     public WeatherInfoDto getWeather(ResponseMap map) throws ParseException {
         WeatherInfoDto dto = new WeatherInfoDto();
         // 오늘 날짜
@@ -136,8 +189,8 @@ public class MapController {
     }
 
     @GetMapping("/weather/{userId}")
-    public ResponseEntity<List<WeatherInfoDto>> getWeather(@PathVariable("userId") String userId,
-            @ModelAttribute("api") WeatherAPIDto api) throws ParseException {
+    public ResponseEntity<List<WeatherInfoDto>> getWeather(@PathVariable("userId") String userId)
+            throws ParseException {
 
         Iterable<MapEntity> mapList = mapService.getMapbyUserId(userId);
         List<WeatherInfoDto> list = new ArrayList<>();
@@ -160,6 +213,27 @@ public class MapController {
             }
 
         });
+
+        return ResponseEntity.status(HttpStatus.OK).body(list);
+    }
+
+    @GetMapping("/car/{userId}")
+    public ResponseEntity<List<CarInfoDto>> getCar(@PathVariable("userId") String userId) throws ParseException {
+
+        Iterable<MapEntity> mapList = mapService.getMapbyUserId(userId);
+        List<CarInfoDto> list = new ArrayList<>();
+        List<ResponseMap> res = new ArrayList<>();
+
+        mapList.forEach(t -> {
+            ResponseMap map = new ModelMapper().map(t, ResponseMap.class);
+            res.add(map);
+        });
+
+        try {
+            list.add(getCarTime(res));
+        } catch (ParseException e) {
+            e.toString();
+        }
 
         return ResponseEntity.status(HttpStatus.OK).body(list);
     }

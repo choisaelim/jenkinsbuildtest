@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
         // client 단에서 받은 userdto를 entity 클래스로 변환
         UserEntity entity = mapper.map(userDto, UserEntity.class);
-        entity.setEncryptedPwd(passEncoder.encode(userDto.getPwd()));
+        entity.setEncryptedPwd(passEncoder.encode(userDto.getPassword()));
         userRepository.save(entity);
 
         UserDto userVo = mapper.map(entity, UserDto.class);
@@ -53,9 +53,6 @@ public class UserServiceImpl implements UserService {
 
         UserDto userDto = new ModelMapper().map(entity, UserDto.class);
 
-        List<ResponseOrder> ordersList = new ArrayList<>();
-        userDto.setOrdersList(ordersList);
-
         return userDto;
     }
 
@@ -66,18 +63,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity entity = userRepository.findByEmail(username);
+        UserEntity entity = userRepository.findByName(username);
 
         if (entity == null)
             throw new UsernameNotFoundException(username);
 
-        UserDetails userDetails = User.builder()
-                .username(entity.getEmail())
-                .password(entity.getEncryptedPwd())
-                .roles("USER")
-                .build();
+        // ModelMapper mapper = new ModelMapper();
 
-        return userDetails;
+        // mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+        // UserDto userDto = mapper.map(entity, UserDto.class);
+
+        // UserDetails userDetails = UserDetails.builder()
+        // .username(entity.getEmail())
+        // .password(entity.getEncryptedPwd())
+        // .roles("USER")
+        // .build();
+        return UserDto.build(entity);
+
     }
 
     @Override
