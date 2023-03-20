@@ -42,6 +42,11 @@ public class MapEntity implements Serializable {
     @Column(nullable = false)
     private String mapType;
 
+    @Column(nullable = false)
+    private String region3;
+    @Column(nullable = false)
+    private String addr;
+
     @CreationTimestamp
     private Instant createdAt;
 }

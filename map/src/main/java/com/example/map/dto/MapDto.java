@@ -13,4 +13,6 @@ public class MapDto implements Serializable {
     private String lon;
     private String userId;
     private String mapType;
+    private String region3;
+    private String addr;
 }

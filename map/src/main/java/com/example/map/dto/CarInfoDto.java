@@ -6,4 +6,5 @@ import lombok.Data;
 public class CarInfoDto {
     private int duration;
     private double distance;
+    private String message;
 }

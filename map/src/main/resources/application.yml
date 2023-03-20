@@ -1,6 +1,10 @@
 server:
     port: 8881
-
+    servlet:
+        encoding:
+            charset: UTF-8
+            enabled: true
+            force: true
 spring:
     application:
         name: map-service
@@ -12,9 +16,19 @@ spring:
         show-sql: true
         generate-ddl: true
         defer-datasource-initialization: true
+        properties:
+            hibernate:
+                format_sql: true
     sql:
         init:
             mode: always
+            encoding: UTF-8
+logging:
+    level:
+        org:
+            hibernate:
+                SQL: DEBUG
+                type: trace
 eureka:
     instance:
         instanceId: ${spring.application.name}:${spring.application.instance_id:${random.value}}

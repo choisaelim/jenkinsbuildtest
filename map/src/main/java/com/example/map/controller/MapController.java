@@ -97,6 +97,7 @@ public class MapController {
 
         int duration = 0;
         double distance = 0;
+        String message = "";
         // 카카오 내비 API
         // https://apis-navi.kakaomobility.com/v1/directions?
         // origin=126.885209391838,37.5156016724837&destination=127.028234154874,37.4945246017971
@@ -127,13 +128,16 @@ public class MapController {
                 JSONObject jsonItem = (JSONObject) ((JSONObject) jsonItemList.get(0)).get("summary");
                 duration = Math.round(Integer.parseInt(jsonItem.get("duration").toString()) / 60); // 초단위로 되어 있으므로 60초로
                                                                                                    // 나눈다
-                distance = Math.round((Double.parseDouble(jsonItem.get("distance").toString()) / 1000) * 100) / 100;
+                distance = (double) (Math.round((Double.parseDouble(jsonItem.get("distance").toString()) / 1000) * 100))
+                        / 100;
             }
         }
 
         dto.setDuration(duration);
         dto.setDistance(distance);
-        // dto.weatherMessage();
+        message = start.getAddr() + "에서 " + end.getAddr() + "까지 자동차로 이동시 거리는 " + distance + "km, 소요시간은 약" + duration
+                + "분 입니다.";
+        dto.setMessage(message);
 
         return dto;
     }

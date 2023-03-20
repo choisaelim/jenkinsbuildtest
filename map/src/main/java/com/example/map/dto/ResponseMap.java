@@ -17,4 +17,7 @@ public class ResponseMap {
     private String userId;
     private String mapType;
     private Date createdAt;
+    private String region3;
+    private String addr;
+
 }
